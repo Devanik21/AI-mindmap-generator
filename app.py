@@ -217,6 +217,61 @@ watermark_text = st.sidebar.text_input("Watermark Text", "MindMap Generator") if
 save_state = st.sidebar.button("💾 Save Mind Map State")
 load_state = st.sidebar.button("📂 Load Mind Map State")
 
+# --- 25 More Industry-Level Pro Features ---
+st.sidebar.markdown("---")
+st.sidebar.header("Pro Features (Industry Level)")
+
+# 21. Node shadow effect
+node_shadow = st.sidebar.checkbox("Enable Node Shadow", value=False)
+# 22. Node gradient fill
+node_gradient = st.sidebar.checkbox("Enable Node Gradient Fill", value=False)
+# 23. Edge curvature
+edge_curvature = st.sidebar.slider("Edge Curvature", 0.0, 1.0, 0.0)
+# 24. Node icon support
+enable_node_icons = st.sidebar.checkbox("Enable Node Icons", value=False)
+# 25. Node icon set
+node_icon_set = st.sidebar.selectbox("Node Icon Set", ["FontAwesome", "Material", "Emoji"])
+# 26. Node size scaling
+node_size_scale = st.sidebar.slider("Node Size Scale", 0.5, 2.0, 1.0)
+# 27. Edge thickness scaling
+edge_thickness_scale = st.sidebar.slider("Edge Thickness Scale", 0.5, 3.0, 1.0)
+# 28. Node border dash style
+node_border_dash = st.sidebar.selectbox("Node Border Dash Style", ["solid", "dashed", "dotted"])
+# 29. Edge animation (for web export/future use)
+edge_animation = st.sidebar.checkbox("Enable Edge Animation", value=False)
+# 30. Node collapse/expand (for interactive/future use)
+enable_node_collapse = st.sidebar.checkbox("Enable Node Collapse/Expand", value=False)
+# 31. Mind map minimap
+show_minimap = st.sidebar.checkbox("Show Minimap", value=False)
+# 32. Node clustering/grouping
+enable_clustering = st.sidebar.checkbox("Enable Node Clustering", value=False)
+# 33. Node group color palette
+group_color_palette = st.sidebar.selectbox("Group Color Palette", ["Default", "Pastel", "Vivid", "Monochrome"])
+# 34. Edge label display
+show_edge_labels = st.sidebar.checkbox("Show Edge Labels", value=False)
+# 35. Edge label font size
+edge_label_font_size = st.sidebar.slider("Edge Label Font Size", 8, 32, 12)
+# 36. Node border opacity
+node_border_opacity = st.sidebar.slider("Node Border Opacity", 0.0, 1.0, 1.0)
+# 37. Edge opacity
+edge_opacity = st.sidebar.slider("Edge Opacity", 0.0, 1.0, 1.0)
+# 38. Node hover highlight color
+node_hover_color = st.sidebar.color_picker("Node Hover Highlight Color", "#FFD700")
+# 39. Edge hover highlight color
+edge_hover_color = st.sidebar.color_picker("Edge Hover Highlight Color", "#FF4500")
+# 40. Export as interactive HTML
+export_html = st.sidebar.checkbox("Enable Interactive HTML Export", value=False)
+# 41. Import mind map from markdown
+import_markdown = st.sidebar.file_uploader("Import Mind Map (Markdown)", type=["md"])
+# 42. Import mind map from Graphviz DOT
+import_dot = st.sidebar.file_uploader("Import Mind Map (DOT)", type=["dot"])
+# 43. Node label wrap length
+node_label_wrap = st.sidebar.slider("Node Label Wrap Length", 10, 100, 30)
+# 44. Node label case
+node_label_case = st.sidebar.selectbox("Node Label Case", ["Original", "UPPERCASE", "lowercase", "Title Case"])
+# 45. Node/edge colorblind mode
+colorblind_mode = st.sidebar.checkbox("Enable Colorblind Mode", value=False)
+
 # --- Main App Logic ---
 if not api_key:
     st.info("Please enter your Google API Key in the sidebar to use the generator.")

@@ -334,6 +334,7 @@ if st.button("✨ Generate Mind Map", disabled=not topic_seed) or regenerate:
     with st.spinner(f"Generating mind map for '{topic_seed}'..."):
         try:
             markdown_output = generate_mind_map(topic_seed)
+            st.session_state["markdown_output"] = markdown_output  # Store in session state
             graph, node_count = parse_markdown_to_graphviz(
                 markdown_output, topic_seed,
                 orientation=orientation,
@@ -459,16 +460,20 @@ if st.button("✨ Generate Mind Map", disabled=not topic_seed) or regenerate:
 
 if ask_ai_button:
     if ai_question:
-        try:
-            st.info(f"AI is processing your question: '{ai_question}'...")
-            # Use the Gemini model to answer the question
-            model = genai.GenerativeModel('gemini-2.5-flash')
-            prompt = f"Here is a mind map in markdown format:\n{markdown_output}\n\nAnswer the following question about the mind map:\n{ai_question}"
-            response = model.generate_content(prompt)
-            ai_response = response.text
-            st.write("AI Response:", ai_response)
-        except Exception as e:
-            st.error(f"An error occurred while generating the AI response: {e}")
-            st.info("This could be due to an invalid API key or a content safety issue from the model.")
+        markdown_output = st.session_state.get("markdown_output", None)
+        if not markdown_output:
+            st.warning("Please generate a mind map first before asking questions.")
+        else:
+            try:
+                st.info(f"AI is processing your question: '{ai_question}'...")
+                # Use the Gemini model to answer the question
+                model = genai.GenerativeModel('gemini-2.5-flash')
+                prompt = f"Here is a mind map in markdown format:\n{markdown_output}\n\nAnswer the following question about the mind map:\n{ai_question}"
+                response = model.generate_content(prompt)
+                ai_response = response.text
+                st.write("AI Response:", ai_response)
+            except Exception as e:
+                st.error(f"An error occurred while generating the AI response: {e}")
+                st.info("This could be due to an invalid API key or a content safety issue from the model.")
     else:
         st.warning("Please enter a question to ask the AI.")

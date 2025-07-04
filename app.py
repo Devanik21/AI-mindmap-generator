@@ -272,6 +272,49 @@ node_label_case = st.sidebar.selectbox("Node Label Case", ["Original", "UPPERCAS
 # 45. Node/edge colorblind mode
 colorblind_mode = st.sidebar.checkbox("Enable Colorblind Mode", value=False)
 
+# --- New Advanced Industry-Level Features ---
+
+# 46. Node animation speed
+node_animation_speed = st.sidebar.slider("Node Animation Speed", min_value=0.1, max_value=5.0, value=1.0)
+# 47. Edge animation style
+edge_animation_style = st.sidebar.selectbox("Edge Animation Style", ["linear", "ease-in", "ease-out", "ease-in-out"])
+# 48. Max node connection count
+max_node_connections = st.sidebar.number_input("Max Node Connection Count", min_value=1, value=10)
+# 49. Node click action customization
+node_click_action = st.sidebar.selectbox("Node Click Action", ["None", "Expand", "Show Details", "Custom"])
+# 50. Node font weight
+node_font_weight = st.sidebar.selectbox("Node Font Weight", ["normal", "bold", "bolder", "lighter"])
+# 51. Edge dash pattern
+edge_dash_pattern = st.sidebar.text_input("Edge Dash Pattern", value="5,5")
+# 52. Node border style detail
+node_border_style = st.sidebar.selectbox("Node Border Style", ["solid", "dashed", "dotted", "double"])
+# 53. Graph layout selection
+graph_layout = st.sidebar.selectbox("Graph Layout", ["dot", "neato", "fdp", "sfdp", "twopi", "circo"])
+# 54. Node color gradient option
+node_color_gradient = st.sidebar.checkbox("Enable Node Color Gradient", value=False)
+# 55. Export as high-resolution image
+export_high_res = st.sidebar.checkbox("Export as High-Resolution Image", value=False)
+
+# --- Super Advanced AI & Interactive Features ---
+st.sidebar.markdown("---")
+st.sidebar.header("Super Advanced Features")
+
+# 56. Focus Mode
+focus_mode = st.sidebar.checkbox("Enable Focus Mode", value=False, help="Highlight only the selected node and its immediate connections.")
+
+# 57. Animate Generation
+animate_generation = st.sidebar.checkbox("Animate Mind Map Generation", value=False, help="The mind map will be built node-by-node.")
+
+# 58. Custom CSS for HTML Export
+custom_css = st.sidebar.text_area("Custom CSS for HTML Export", placeholder="e.g., .node { stroke: blue; }", help="Inject custom CSS into interactive HTML exports.")
+
+# 59. AI-Powered Summary
+generate_summary = st.sidebar.button("Generate AI Summary of Map", help="Use AI to create a text summary of the mind map.")
+
+# 60. AI-Powered Q&A
+ai_question = st.sidebar.text_input("Ask a question about the map's content", help="Use AI to answer questions based on the mind map.")
+ask_ai_button = st.sidebar.button("Ask AI")
+
 # --- Main App Logic ---
 if not api_key:
     st.info("Please enter your Google API Key in the sidebar to use the generator.")

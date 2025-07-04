@@ -456,3 +456,14 @@ if st.button("✨ Generate Mind Map", disabled=not topic_seed) or regenerate:
         except Exception as e:
             st.error(f"An error occurred while generating the mind map: {e}")
             st.info("This could be due to an invalid API key or a content safety issue from the model.")
+
+if ask_ai_button:
+    if ai_question:
+        st.info(f"AI is processing your question: '{ai_question}'... (This is a placeholder)")
+        # TODO: Implement AI-powered Q&A logic here
+        # 1. Send the mind map content (markdown_output) and the question (ai_question) to an AI model.
+        # 2. Display the AI's response.
+        ai_response = "This is a placeholder response from the AI."
+        st.write("AI Response:", ai_response)
+    else:
+        st.warning("Please enter a question to ask the AI.")

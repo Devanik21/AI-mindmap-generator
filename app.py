@@ -4,23 +4,28 @@ import graphviz
 import re
 import requests
 from bs4 import BeautifulSoup
-import json
+import io
 
+# --- Note on Dependencies ---
+# This app now uses 'requests' and 'beautifulsoup4'. Install them with:
+# pip install requests beautifulsoup4
 # --- Configuration ---
 st.set_page_config(
-    page_title="IntelliMap Generator",
+    page_title="Mind-Map Generator",
     page_icon="🧠",
     layout="wide"
 )
 
-# --- Default Prompt & Themes ---
+# --- Gemini API Configuration ---
+# The API key is now configured via the sidebar input.
+# --- Prompt Template ---
 DEFAULT_MIND_MAP_PROMPT = """
 You are an expert mind map creator.
 Your task is to generate a hierarchical mind map outline for the given topic.
 The output must be a markdown-formatted nested list.
 Each item in the list represents a node in the mind map.
 Use indentation (two spaces per level) to represent the hierarchy.
-Do not include any other text, explanations, or markdown formatting like headers, code blocks, or bolding.
+Do not include any other text, explanations, or markdown formatting like headers or backticks.
 The root of the mind map should be the topic itself.
 
 **Example for "Data Structures":**
@@ -28,61 +33,22 @@ The root of the mind map should be the topic itself.
   - Linear
     - Array
     - Linked List
+    - Stack
+    - Queue
   - Non-Linear
     - Tree
+      - Binary Tree
+      - B-Tree
     - Graph
 
 **Generate a mind map for the topic:** "{topic}"
 """
 
-THEMES = {
-    "Default Light": {"bg_color": "#FFFFFF", "node_color": "#ADD8E6", "node_font_color": "#000000", "edge_color": "#888888", "node_border_color": "#666666", "highlight_color": "#FFD700"},
-    "Default Dark": {"bg_color": "#0E1117", "node_color": "#262730", "node_font_color": "#FAFAFA", "edge_color": "#A0A0A0", "node_border_color": "#1E90FF", "highlight_color": "#FF6347"},
-    "Forest": {"bg_color": "#F0FFF0", "node_color": "#2E8B57", "node_font_color": "#FFFFFF", "edge_color": "#8FBC8F", "node_border_color": "#006400", "highlight_color": "#FFD700"},
-    "Synthwave": {"bg_color": "#2D004F", "node_color": "#FF00FF", "node_font_color": "#FFFFFF", "edge_color": "#00FFFF", "node_border_color": "#FFFF00", "highlight_color": "#FF69B4"},
-    "Peach": {"bg_color": "#FFF5EE", "node_color": "#FFDAB9", "node_font_color": "#8B4513", "edge_color": "#FFA07A", "node_border_color": "#CD853F", "highlight_color": "#DC143C"},
-}
-
-# --- Session State Initialization ---
-def initialize_state():
-    """Initializes all session state variables."""
-    # --- Backend State ---
-    if "history" not in st.session_state:
-        st.session_state.history = []
-    if "history_index" not in st.session_state:
-        st.session_state.history_index = -1
-    if "api_key" not in st.session_state:
-        st.session_state.api_key = ""
-    if "graph" not in st.session_state:
-        st.session_state.graph = None
-    if "markdown_output" not in st.session_state:
-        st.session_state.markdown_output = ""
-    if "node_list" not in st.session_state:
-        st.session_state.node_list = []
-    if "ai_analysis" not in st.session_state:
-        st.session_state.ai_analysis = ""
-
-    # --- UI Controls ---
-    # Using keys for widgets ensures their state is preserved
-    if "input_source" not in st.session_state:
-        st.session_state["input_source"] = "Topic"
-    if "topic_input" not in st.session_state:
-        st.session_state["topic_input"] = "The Future of Artificial Intelligence"
-    if "url_input" not in st.session_state:
-        st.session_state["url_input"] = ""
-    if "text_input" not in st.session_state:
-        st.session_state["text_input"] = ""
-    if "custom_prompt" not in st.session_state:
-        st.session_state["custom_prompt"] = DEFAULT_MIND_MAP_PROMPT
-
-initialize_state()
-
 # --- Helper Functions ---
+
 def generate_unique_node_id(text, existing_ids):
     """Generates a unique, safe ID for a graphviz node."""
     base_id = re.sub(r'\W+', '_', text).lower()
-    if not base_id:
-        base_id = "node"
     node_id = base_id
     counter = 1
     while node_id in existing_ids:
@@ -92,85 +58,126 @@ def generate_unique_node_id(text, existing_ids):
 
 def fetch_url_content(url):
     """Fetches and extracts clean text content from a URL."""
-    if not (url.startswith('http://') or url.startswith('https://')):
-        st.error("Invalid URL. Please include http:// or https://")
-        return None
     try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'}
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
+        # Remove script, style, nav, and footer elements for cleaner text
         for element in soup(["script", "style", "nav", "footer", "header"]):
             element.extract()
         text = soup.get_text(separator='\n')
         lines = (line.strip() for line in text.splitlines())
         chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-        clean_text = '\n'.join(chunk for chunk in chunks if chunk)
-        return clean_text[:8000] # Limit text to avoid overly long prompts
+        text = '\n'.join(chunk for chunk in chunks if chunk)
+        return text
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching URL: {e}")
         return None
 
 def parse_nodes_from_markdown(markdown_text):
     """Extracts all node labels from the markdown list."""
-    # Use a regex to find all list items, which is more robust
-    nodes = re.findall(r'^\s*-\s(.+)', markdown_text, re.MULTILINE)
-    return [node.strip() for node in nodes]
+    nodes = []
+    for line in markdown_text.strip().split('\n'):
+        if line.strip():
+            node_text = line.lstrip().lstrip('- ').strip()
+            nodes.append(node_text)
+    return nodes
 
-def parse_markdown_to_graphviz(markdown_text: str, settings: dict) -> graphviz.Digraph:
+def parse_markdown_to_graphviz(markdown_text: str, topic: str, orientation: str = "LR", font_size: int = 12, node_color: str = "#ADD8E6", max_depth: int = 5,
+    node_border_color: str = "#000000", node_border_width: int = 2, edge_color: str = "#888888", edge_style: str = "solid",
+    edge_arrow_size: float = 1.0, node_shape: str = "box", node_font: str = "Helvetica", node_font_color: str = "#000000",
+    edge_font_color: str = "#333333", edge_font_size: int = 12, bg_color: str = "#FFFFFF", custom_root: str = "", hide_leaf_nodes: bool = False,
+    layout_engine: str = "dot", search_term: str = "", sketch_style: bool = False) -> graphviz.Digraph:
     """
     Parses a markdown nested list into a graphviz Digraph object.
+    Supports many advanced options.
     """
-    dot = graphviz.Digraph('MindMap')
-    dot.attr('graph',
-             bgcolor=settings["bg_color"],
-             rankdir=settings["orientation"],
-             splines='ortho',
-             engine=settings["layout_engine"])
+    dot = graphviz.Digraph('MindMap', comment=f'Mind Map for {topic}')
+    dot.attr('graph', bgcolor=bg_color)
+    dot.attr(
+        'graph',
+        engine=layout_engine,
+        splines='ortho' # Default spline style
+    )
 
-    dot.attr('node', style='rounded,filled', fontname="Helvetica", penwidth='1')
-    dot.attr('edge', fontname="Helvetica")
+    dot.attr(
+        'node',
+        shape=node_shape,
+        style='rounded,filled',
+        fillcolor=node_color,
+        color=node_border_color,
+        penwidth=str(node_border_width),
+        fontname=node_font,
+        fontsize=str(font_size),
+        fontcolor=node_font_color
+    )
+    dot.attr(
+        'edge',
+        color=edge_color,
+        style=edge_style,
+        arrowsize=str(edge_arrow_size),
+        fontname=node_font,
+        fontsize=str(edge_font_size),
+        fontcolor=edge_font_color
+    )
+    orientation_map = {
+        "Left-Right (LR)": "LR",
+        "Top-Bottom (TB)": "TB",
+        "Right-Left (RL)": "RL",
+        "Bottom-Top (BT)": "BT"
+    }
 
     lines = markdown_text.strip().split('\n')
     parent_stack = []
     existing_ids = set()
-    search_term = settings.get("search_term", "").lower()
+    node_count = 0
 
-    for line in lines:
-        # Robustly find list items, ignoring empty or malformed lines
-        match = re.match(r'^(\s*)-\s(.+)', line)
-        if not match:
+    for idx, line in enumerate(lines):
+        if not line.strip():
             continue
 
-        indentation_str, node_text = match.groups()
-        indentation = len(indentation_str)
+        stripped_line = line.lstrip()
+        indentation = len(line) - len(stripped_line)
         level = indentation // 2
-        node_text = node_text.strip()
+
+        if level >= max_depth:
+            continue
+
+        node_text = stripped_line.lstrip('- ').strip()
+        if custom_root and level == 0:
+            node_text = custom_root
 
         node_id = generate_unique_node_id(node_text, existing_ids)
         existing_ids.add(node_id)
 
-        # Determine node color, highlighting if it matches search
-        fill_color = settings["highlight_color"] if search_term and search_term in node_text.lower() else settings["node_color"]
+        # Hide leaf nodes if enabled
+        if hide_leaf_nodes and idx + 1 < len(lines):
+            next_line = lines[idx + 1]
+            next_indentation = len(next_line) - len(next_line.lstrip())
+            next_level = next_indentation // 2
+            if next_level <= level:
+                continue
 
-        dot.node(node_id, node_text,
-                 shape=settings["node_shape"],
-                 fillcolor=fill_color,
-                 fontcolor=settings["node_font_color"],
-                 color=settings["node_border_color"],
-                 fontsize=str(settings["font_size"]))
+        dot.node(node_id, node_text)
+        node_count += 1
 
         while parent_stack and parent_stack[-1][0] >= level:
             parent_stack.pop()
 
         if parent_stack:
             parent_id = parent_stack[-1][1]
-            dot.edge(parent_id, node_id, color=settings["edge_color"])
+            dot.edge(parent_id, node_id)
 
         parent_stack.append((level, node_id))
 
+    # Add watermark if enabled
+    if add_watermark and watermark_text:
+        dot.attr(label=watermark_text, fontsize="10", fontcolor="#CCCCCC", labelloc="b", labeljust="r")
+
+    return dot, node_count
+
+def generate_mind_map(topic: str):
     """Calls the Gemini API to generate the mind map markdown."""
     model = genai.GenerativeModel('gemini-2.5-flash')
     prompt = MIND_MAP_PROMPT.format(topic=topic)

@@ -2,13 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 import graphviz
 import re
-import requests
-from bs4 import BeautifulSoup
-import io
 
-# --- Note on Dependencies ---
-# This app now uses 'requests' and 'beautifulsoup4'. Install them with:
-# pip install requests beautifulsoup4
 # --- Configuration ---
 st.set_page_config(
     page_title="Mind-Map Generator",
@@ -19,7 +13,7 @@ st.set_page_config(
 # --- Gemini API Configuration ---
 # The API key is now configured via the sidebar input.
 # --- Prompt Template ---
-DEFAULT_MIND_MAP_PROMPT = """
+MIND_MAP_PROMPT = """
 You are an expert mind map creator.
 Your task is to generate a hierarchical mind map outline for the given topic.
 The output must be a markdown-formatted nested list.
@@ -56,51 +50,17 @@ def generate_unique_node_id(text, existing_ids):
         counter += 1
     return node_id
 
-def fetch_url_content(url):
-    """Fetches and extracts clean text content from a URL."""
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'}
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-        # Remove script, style, nav, and footer elements for cleaner text
-        for element in soup(["script", "style", "nav", "footer", "header"]):
-            element.extract()
-        text = soup.get_text(separator='\n')
-        lines = (line.strip() for line in text.splitlines())
-        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-        text = '\n'.join(chunk for chunk in chunks if chunk)
-        return text
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error fetching URL: {e}")
-        return None
-
-def parse_nodes_from_markdown(markdown_text):
-    """Extracts all node labels from the markdown list."""
-    nodes = []
-    for line in markdown_text.strip().split('\n'):
-        if line.strip():
-            node_text = line.lstrip().lstrip('- ').strip()
-            nodes.append(node_text)
-    return nodes
-
 def parse_markdown_to_graphviz(markdown_text: str, topic: str, orientation: str = "LR", font_size: int = 12, node_color: str = "#ADD8E6", max_depth: int = 5,
     node_border_color: str = "#000000", node_border_width: int = 2, edge_color: str = "#888888", edge_style: str = "solid",
     edge_arrow_size: float = 1.0, node_shape: str = "box", node_font: str = "Helvetica", node_font_color: str = "#000000",
-    edge_font_color: str = "#333333", edge_font_size: int = 12, bg_color: str = "#FFFFFF", custom_root: str = "", hide_leaf_nodes: bool = False,
-    layout_engine: str = "dot", search_term: str = "", sketch_style: bool = False) -> graphviz.Digraph:
+    edge_font_color: str = "#333333", edge_font_size: int = 12, bg_color: str = "#FFFFFF", custom_root: str = "", hide_leaf_nodes: bool = False
+) -> graphviz.Digraph:
     """
     Parses a markdown nested list into a graphviz Digraph object.
     Supports many advanced options.
     """
     dot = graphviz.Digraph('MindMap', comment=f'Mind Map for {topic}')
     dot.attr('graph', bgcolor=bg_color)
-    dot.attr(
-        'graph',
-        engine=layout_engine,
-        splines='ortho' # Default spline style
-    )
-
     dot.attr(
         'node',
         shape=node_shape,
@@ -127,6 +87,7 @@ def parse_markdown_to_graphviz(markdown_text: str, topic: str, orientation: str 
         "Right-Left (RL)": "RL",
         "Bottom-Top (BT)": "BT"
     }
+    dot.attr(rankdir=orientation_map.get(orientation, "LR"), splines='ortho')
 
     lines = markdown_text.strip().split('\n')
     parent_stack = []

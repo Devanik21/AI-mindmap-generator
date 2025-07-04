@@ -459,11 +459,16 @@ if st.button("✨ Generate Mind Map", disabled=not topic_seed) or regenerate:
 
 if ask_ai_button:
     if ai_question:
-        st.info(f"AI is processing your question: '{ai_question}'... (This is a placeholder)")
-        # TODO: Implement AI-powered Q&A logic here
-        # 1. Send the mind map content (markdown_output) and the question (ai_question) to an AI model.
-        # 2. Display the AI's response.
-        ai_response = "This is a placeholder response from the AI."
-        st.write("AI Response:", ai_response)
+        try:
+            st.info(f"AI is processing your question: '{ai_question}'...")
+            # Use the Gemini model to answer the question
+            model = genai.GenerativeModel('gemini-2.5-flash')
+            prompt = f"Here is a mind map in markdown format:\n{markdown_output}\n\nAnswer the following question about the mind map:\n{ai_question}"
+            response = model.generate_content(prompt)
+            ai_response = response.text
+            st.write("AI Response:", ai_response)
+        except Exception as e:
+            st.error(f"An error occurred while generating the AI response: {e}")
+            st.info("This could be due to an invalid API key or a content safety issue from the model.")
     else:
         st.warning("Please enter a question to ask the AI.")

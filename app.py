@@ -358,4 +358,3 @@ if st.button("✨ Generate Mind Map", disabled=not topic_seed) or regenerate:
         except Exception as e:
             st.error(f"An error occurred while generating the mind map: {e}")
             st.info("This could be due to an invalid API key or a content safety issue from the model.")
-
